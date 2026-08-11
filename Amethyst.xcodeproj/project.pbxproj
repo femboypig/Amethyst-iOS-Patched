@@ -49,7 +49,7 @@
 			buildConfigurationList = 054957C82986E8DC00EFD4CE /* Build configuration list for PBXLegacyTarget "Angel Aura Amethyst" */;
 			buildPhases = (
 			);
-			buildToolPath = /usr/local/bin/gmake;
+			buildToolPath = /usr/bin/make;
 			buildWorkingDirectory = "";
 			dependencies = (
 			);
@@ -92,12 +92,14 @@
 		054957C62986E8DC00EFD4CE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PATH = "${PATH}:/opt/procursus/bin:/opt/procursus/sbin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin";
+				BUNDLE_ID = ru.femboypig.Krank;
+				CODE_SIGN_ENTITLEMENTS = entitlements.codesign.xml;
+				PATH = "/Users/mac/tools/bin:${PATH}:/opt/procursus/bin:/opt/procursus/sbin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin";
 				PLATFORM = 2;
-				PROVISIONING = "/Users/evaluna/Library/MobileDevice/Provisioning Profiles/WildcardProvisioning.mobileprovision";
+				PROVISIONING = "/Users/mac/Library/MobileDevice/Provisioning Profiles/fb22ba26-e624-4750-ad10-0a8191e6d7b3.mobileprovision";
 				RELEASE = 0;
-				SIGNING_TEAMID = TF9842L8S8;
-				TEAMID = 95J8WZ4TN8;
+				SIGNING_TEAMID = X2W29VUG9T;
+				TEAMID = V24Z4G9S3A;
 				VERBOSE = 1;
 			};
 			name = Debug;
@@ -105,12 +107,14 @@
 		054957C72986E8DC00EFD4CE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PATH = "${PATH}:/opt/procursus/bin:/opt/procursus/sbin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin";
+				BUNDLE_ID = ru.femboypig.Krank;
+				CODE_SIGN_ENTITLEMENTS = entitlements.codesign.xml;
+				PATH = "/Users/mac/tools/bin:${PATH}:/opt/procursus/bin:/opt/procursus/sbin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/local/sbin";
 				PLATFORM = 2;
-				PROVISIONING = "/Users/evaluna/Library/MobileDevice/Provisioning Profiles/WildcardProvisioning.mobileprovision";
+				PROVISIONING = "/Users/mac/Library/MobileDevice/Provisioning Profiles/fb22ba26-e624-4750-ad10-0a8191e6d7b3.mobileprovision";
 				RELEASE = 1;
-				SIGNING_TEAMID = TF9842L8S8;
-				TEAMID = 95J8WZ4TN8;
+				SIGNING_TEAMID = X2W29VUG9T;
+				TEAMID = V24Z4G9S3A;
 				VERBOSE = 0;
 			};
 			name = Release;
@@ -118,9 +122,11 @@
 		054957C92986E8DC00EFD4CE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PROVISIONING = "/Users/evaluna/Library/MobileDevice/Provisioning Profiles/WildcardProvisioning.mobileprovision";
-				SIGNING_TEAMID = TF9842L8S8;
-				TEAMID = 95J8WZ4TN8;
+				BUNDLE_ID = ru.femboypig.Krank;
+				CODE_SIGN_ENTITLEMENTS = entitlements.codesign.xml;
+				PROVISIONING = "/Users/mac/Library/MobileDevice/Provisioning Profiles/fb22ba26-e624-4750-ad10-0a8191e6d7b3.mobileprovision";
+				SIGNING_TEAMID = X2W29VUG9T;
+				TEAMID = V24Z4G9S3A;
 				_COMMENT = "You can change PLATFORM to vtool for non-iOS. PROVISIONING, SIGNING_TEAMID, and TEAMID are used for codesign, they won't work on your machine without edits. PATH, VERBOSE, and RELEASE do not need to be changed.";
 			};
 			name = Debug;
@@ -128,9 +134,11 @@
 		054957CA2986E8DC00EFD4CE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				PROVISIONING = "/Users/evaluna/Library/MobileDevice/Provisioning Profiles/WildcardProvisioning.mobileprovision";
-				SIGNING_TEAMID = TF9842L8S8;
-				TEAMID = 95J8WZ4TN8;
+				BUNDLE_ID = ru.femboypig.Krank;
+				CODE_SIGN_ENTITLEMENTS = entitlements.codesign.xml;
+				PROVISIONING = "/Users/mac/Library/MobileDevice/Provisioning Profiles/fb22ba26-e624-4750-ad10-0a8191e6d7b3.mobileprovision";
+				SIGNING_TEAMID = X2W29VUG9T;
+				TEAMID = V24Z4G9S3A;
 				_COMMENT = "You can change PLATFORM to vtool for non-iOS. PROVISIONING, SIGNING_TEAMID, and TEAMID are used for codesign, they won't work on your machine without edits. PATH, VERBOSE, and RELEASE do not need to be changed.";
 			};
 			name = Release;
