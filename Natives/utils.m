@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/mman.h>
 #include <dirent.h>
 
 #include "utils.h"
@@ -14,13 +15,15 @@ void* SecTaskCreateFromSelf(CFAllocatorRef allocator);
 
 BOOL getEntitlementValue(NSString *key) {
     void *secTask = SecTaskCreateFromSelf(NULL);
-    CFTypeRef value = SecTaskCopyValueForEntitlement(SecTaskCreateFromSelf(NULL), key, nil);
+    if (!secTask) return NO;
+    CFTypeRef value = SecTaskCopyValueForEntitlement(secTask, key, nil);
     CFRelease(secTask);
     if (value == nil) {
         return NO;
     }
+    BOOL result = ![(__bridge id)value isKindOfClass:NSNumber.class] || [(__bridge id)value boolValue];
     CFRelease(value);
-    return ![(__bridge id)value isKindOfClass:NSNumber.class] || [(__bridge id)value boolValue];
+    return result;
 }
 
 BOOL isJITEnabled(BOOL checkCSFlags) {
@@ -211,8 +214,17 @@ BOOL DeviceCanCreateRXMap(void) {
 BOOL DeviceHasTXMReal(void) {
     DIR *d = opendir("/private/preboot");
     if(!d) {
-        // /private/preboot is not accessible in 27.0 and 26.6?, fallback to speculation
+        // /private/preboot is not accessible in iOS 27 and some 26.6 builds.
+        // MobileGestalt is private API and its symbol is not guaranteed to exist,
+        // so never call the result of dlsym without validating it first.
+        if (@available(iOS 27.0, *)) {
+            return YES;
+        }
         NSUInteger (*MGGetSInt64Answer)(NSString *) = dlsym(RTLD_DEFAULT, "MGGetSInt64Answer");
+        if (!MGGetSInt64Answer) {
+            NSLog(@"[JIT] MGGetSInt64Answer is unavailable; assuming TXM conservatively");
+            return YES;
+        }
         NSUInteger chipID = MGGetSInt64Answer(@"ChipID");
         switch(chipID) {
             case 0x8020: // A12
@@ -221,14 +233,14 @@ BOOL DeviceHasTXMReal(void) {
             case 0x8030: // A13
             case 0x8101: // A14
             case 0x8103: // M1
-                if (@available(iOS 27.0, *)) return YES; return NO;
+                return NO;
             default:
                 if (@available(iOS 19.0, *)) return YES; return NO;
         }
     }
     // deterministically detect TXM for 17.0-26.5?
     struct dirent *dir;
-    char txmPath[PATH_MAX];
+    char txmPath[PATH_MAX] = {0};
     while ((dir = readdir(d)) != NULL) {
         if(strlen(dir->d_name) == 96) {
             snprintf(txmPath, sizeof(txmPath), "/private/preboot/%s/usr/standalone/firmware/FUD/Ap,TrustedExecutionMonitor.img4", dir->d_name);
@@ -236,6 +248,10 @@ BOOL DeviceHasTXMReal(void) {
         }
     }
     closedir(d);
+    if (txmPath[0] == '\0') {
+        NSLog(@"[JIT] Unable to locate the preboot firmware directory; assuming TXM conservatively");
+        return YES;
+    }
     return access(txmPath, F_OK) == 0;
 }
 // Thin wrapper of DeviceHasJITFlags to respect overriden flag
