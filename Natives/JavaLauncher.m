@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
+#include <mach/mach.h>
 #include <unistd.h>
 
 #include "utils.h"
@@ -245,6 +247,9 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     margv[++margc] = [NSString stringWithFormat:@"-DUIScreen.maximumFramesPerSecond=%d", (int)UIScreen.mainScreen.maximumFramesPerSecond].UTF8String;
     margv[++margc] = "-Dorg.lwjgl.glfw.checkThread0=false";
     margv[++margc] = "-Dorg.lwjgl.system.allocator=system";
+    // LWJGL 3.4.1's SPVC module defaults to libspirv-cross.dylib. MobileGlues
+    // ships the compatible SPIRV-Cross C API under its versioned install name.
+    margv[++margc] = [NSString stringWithFormat:@"-Dorg.lwjgl.spvc.libname=%@/Frameworks/libspirv-cross-c-shared.0.dylib", NSBundle.mainBundle.bundlePath].UTF8String;
     //margv[++margc] = "-Dorg.lwjgl.util.NoChecks=true";
     margv[++margc] = "-Dlog4j2.formatMsgNoLookups=true";
 
@@ -341,10 +346,12 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     }
     margv[++margc] = cacio_classpath.UTF8String;
 
-    if (!getEntitlementValue(@"com.apple.developer.kernel.extended-virtual-addressing")) {
+    // Java 25 no longer accepts compressed class pointers in this iOS layout.
+    // Keep this disabled for every runtime; the option is also safe on Java 8/17/21.
+    if (!getenv("JVM_KEEP_UseCompressedClassPointers") ||
+        !getEntitlementValue(@"com.apple.developer.kernel.extended-virtual-addressing")) {
         // In jailed environment, where extended virtual addressing entitlement isn't
         // present (for free dev account), allocating compressed space fails.
-        // FIXME: does extended VA allow allocating compressed class space?
         margv[++margc] = "-XX:-UseCompressedClassPointers";
     }
 
