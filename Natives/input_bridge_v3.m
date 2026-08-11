@@ -17,6 +17,8 @@
 #include <libgen.h>
 #include <stdlib.h>
 #include <stdatomic.h>
+#include <sys/mman.h>
+#include <mach/mach.h>
 
 #include "jni.h"
 #include "glfw_keycodes.h"
