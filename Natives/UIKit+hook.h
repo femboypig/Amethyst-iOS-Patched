@@ -19,8 +19,9 @@ extern NSNotificationName UIPresentationControllerPresentationTransitionWillBegi
 - (UIView *)buttonGlassView;
 @end
 
-// private functions
-extern BOOL _UISolariumEnabled(void) __attribute__((weak_import));
+// Runtime lookup keeps old SDK builds linkable while using Liquid Glass when
+// the private UIKit capability probe exists on newer systems.
+BOOL UIKitHasLiquidGlass(void);
 
 @interface UIBarButtonItem(private)
 - (UIView *)view;
