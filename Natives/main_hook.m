@@ -8,6 +8,7 @@
 #include <dlfcn.h>
 #include <libgen.h>
 #include <pthread.h>
+#include <mach/mach.h>
 #include "external/fishhook/fishhook.h"
 
 mach_port_t excPort;
