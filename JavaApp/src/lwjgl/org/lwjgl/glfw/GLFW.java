@@ -298,7 +298,8 @@ public class GLFW
     GLFW_NO_WINDOW_CONTEXT     = 0x1000A,
     GLFW_CURSOR_UNAVAILABLE    = 0x1000B,
     GLFW_FEATURE_UNAVAILABLE   = 0x1000C,
-    GLFW_FEATURE_UNIMPLEMENTED = 0x1000D;
+    GLFW_FEATURE_UNIMPLEMENTED = 0x1000D,
+    GLFW_PLATFORM_UNAVAILABLE  = 0x1000E;
 
     public static final int
     GLFW_FOCUSED                 = 0x20001,
@@ -312,7 +313,11 @@ public class GLFW
     GLFW_CENTER_CURSOR           = 0x20009,
     GLFW_TRANSPARENT_FRAMEBUFFER = 0x2000A,
     GLFW_HOVERED                 = 0x2000B,
-    GLFW_FOCUS_ON_SHOW           = 0x2000C;
+    GLFW_FOCUS_ON_SHOW           = 0x2000C,
+    GLFW_MOUSE_PASSTHROUGH       = 0x2000D,
+    GLFW_POSITION_X              = 0x2000E,
+    GLFW_POSITION_Y              = 0x2000F,
+    GLFW_SOFT_FULLSCREEN         = 0x20010;
 
     /** Input options. */
     public static final int
@@ -320,13 +325,16 @@ public class GLFW
     GLFW_STICKY_KEYS          = 0x33002,
     GLFW_STICKY_MOUSE_BUTTONS = 0x33003,
     GLFW_LOCK_KEY_MODS        = 0x33004,
-    GLFW_RAW_MOUSE_MOTION     = 0x33005;
+    GLFW_RAW_MOUSE_MOTION     = 0x33005,
+    GLFW_UNLIMITED_MOUSE_BUTTONS = 0x33006,
+    GLFW_IME                  = 0x33007;
 
     /** Cursor state. */
     public static final int
     GLFW_CURSOR_NORMAL   = 0x34001,
     GLFW_CURSOR_HIDDEN   = 0x34002,
-    GLFW_CURSOR_DISABLED = 0x34003;
+    GLFW_CURSOR_DISABLED = 0x34003,
+    GLFW_CURSOR_CAPTURED = 0x34004;
 
     /** The regular arrow cursor shape. */
     public static final int GLFW_ARROW_CURSOR = 0x36001;
@@ -371,8 +379,16 @@ public class GLFW
     /** Init hints. */
     public static final int
     GLFW_JOYSTICK_HAT_BUTTONS  = 0x50001,
+    GLFW_ANGLE_PLATFORM_TYPE   = 0x50002,
+    GLFW_PLATFORM              = 0x50003,
+    GLFW_MANAGE_PREEDIT_CANDIDATE = 0x50004,
     GLFW_COCOA_CHDIR_RESOURCES = 0x51001,
-    GLFW_COCOA_MENUBAR         = 0x51002;
+    GLFW_COCOA_MENUBAR         = 0x51002,
+    GLFW_X11_XCB_VULKAN_SURFACE = 0x52001,
+    GLFW_X11_ONTHESPOT         = 0x52002,
+    GLFW_WAYLAND_LIBDECOR      = 0x53001;
+
+    public static final int GLFW_ANY_POSITION = 0x80000000;
 
     /** Hint value for {@link #GLFW_PLATFORM PLATFORM} that enables automatic platform selection. */
     public static final int
@@ -412,12 +428,14 @@ public class GLFW
     GLFW_CONTEXT_REVISION         = 0x22004,
     GLFW_CONTEXT_ROBUSTNESS       = 0x22005,
     GLFW_OPENGL_FORWARD_COMPAT    = 0x22006,
-    GLFW_OPENGL_DEBUG_CONTEXT     = 0x22007,
+    GLFW_CONTEXT_DEBUG            = 0x22007,
+    GLFW_OPENGL_DEBUG_CONTEXT     = GLFW_CONTEXT_DEBUG,
     GLFW_OPENGL_PROFILE           = 0x22008,
     GLFW_CONTEXT_RELEASE_BEHAVIOR = 0x22009,
     GLFW_CONTEXT_NO_ERROR         = 0x2200A,
     GLFW_CONTEXT_CREATION_API     = 0x2200B,
-    GLFW_SCALE_TO_MONITOR         = 0x2200C;
+    GLFW_SCALE_TO_MONITOR         = 0x2200C,
+    GLFW_SCALE_FRAMEBUFFER        = 0x2200D;
 
     /** Specifies whether to use full resolution framebuffers on Retina displays. This is ignored on other platforms. */
     public static final int GLFW_COCOA_RETINA_FRAMEBUFFER = 0x23001;
@@ -446,6 +464,10 @@ public class GLFW
      * <p>This is ignored on other platforms.</p>
      */
     public static final int GLFW_WIN32_KEYBOARD_MENU = 0x25001;
+
+    public static final int GLFW_WIN32_SHOWDEFAULT = 0x25002;
+
+    public static final int GLFW_WAYLAND_APP_ID = 0x26001;
 
     /** Values for the {@link #GLFW_CLIENT_API CLIENT_API} hint. */
     public static final int
@@ -477,9 +499,24 @@ public class GLFW
     GLFW_EGL_CONTEXT_API    = 0x36002,
     GLFW_OSMESA_CONTEXT_API = 0x36003;
 
+    public static final int
+    GLFW_ANGLE_PLATFORM_TYPE_NONE     = 0x37001,
+    GLFW_ANGLE_PLATFORM_TYPE_OPENGL   = 0x37002,
+    GLFW_ANGLE_PLATFORM_TYPE_OPENGLES = 0x37003,
+    GLFW_ANGLE_PLATFORM_TYPE_D3D9     = 0x37004,
+    GLFW_ANGLE_PLATFORM_TYPE_D3D11    = 0x37005,
+    GLFW_ANGLE_PLATFORM_TYPE_VULKAN   = 0x37007,
+    GLFW_ANGLE_PLATFORM_TYPE_METAL    = 0x37008;
+
+    public static final int
+    GLFW_WAYLAND_PREFER_LIBDECOR  = 0x38001,
+    GLFW_WAYLAND_DISABLE_LIBDECOR = 0x38002;
+
     // GLFW Callbacks
     /* volatile */ public static GLFWCharCallback mGLFWCharCallback;
     /* volatile */ public static GLFWCharModsCallback mGLFWCharModsCallback;
+    /* volatile */ public static GLFWPreeditCallback mGLFWPreeditCallback;
+    /* volatile */ public static GLFWIMEStatusCallback mGLFWIMEStatusCallback;
     /* volatile */ public static GLFWCursorEnterCallback mGLFWCursorEnterCallback;
     /* volatile */ public static GLFWCursorPosCallback mGLFWCursorPosCallback;
     /* volatile */ public static GLFWDropCallback mGLFWDropCallback;
@@ -641,6 +678,18 @@ public class GLFW
         if (cbfun == null) mGLFWCharModsCallback = null;
         else mGLFWCharModsCallback = GLFWCharModsCallback.createSafe(nglfwSetCharModsCallback(window, memAddressSafe(cbfun)));
 
+        return lastCallback;
+    }
+
+    public static GLFWPreeditCallback glfwSetPreeditCallback(@NativeType("GLFWwindow *") long window, @Nullable GLFWPreeditCallbackI cbfun) {
+        GLFWPreeditCallback lastCallback = mGLFWPreeditCallback;
+        mGLFWPreeditCallback = cbfun == null ? null : GLFWPreeditCallback.create(cbfun);
+        return lastCallback;
+    }
+
+    public static GLFWIMEStatusCallback glfwSetIMEStatusCallback(@NativeType("GLFWwindow *") long window, @Nullable GLFWIMEStatusCallbackI cbfun) {
+        GLFWIMEStatusCallback lastCallback = mGLFWIMEStatusCallback;
+        mGLFWIMEStatusCallback = cbfun == null ? null : GLFWIMEStatusCallback.create(cbfun);
         return lastCallback;
     }
 
@@ -809,6 +858,10 @@ public class GLFW
         return GLFW_PLATFORM_X11;
     }
 
+    public static boolean glfwPlatformSupported(int platform) {
+        return platform == GLFW_ANY_PLATFORM || platform == GLFW_PLATFORM_X11;
+    }
+
     @NativeType("GLFWwindow *")
     public static long glfwGetCurrentContext() {
         long __functionAddress = Functions.GetCurrentContext;
@@ -840,6 +893,11 @@ public class GLFW
     public static long glfwGetPrimaryMonitor() {
         // Prevent NULL check
         return 1L;
+    }
+
+    @Nullable
+    public static String glfwGetMonitorName(@NativeType("GLFWmonitor *") long monitor) {
+        return monitor == 0L ? null : "iOS Display";
     }
 
     public static void glfwGetMonitorPos(@NativeType("GLFWmonitor *") long monitor, @Nullable @NativeType("int *") IntBuffer xpos, @Nullable @NativeType("int *") IntBuffer ypos) {
@@ -1088,10 +1146,29 @@ public class GLFW
     public static void glfwPostEmptyEvent() {}
 
     public static int glfwGetInputMode(@NativeType("GLFWwindow *") long window, int mode) {
-        return internalGetWindow(window).inputModes.get(mode);
+        GLFWWindowProperties properties = internalGetWindow(window);
+        return properties.inputModes.getOrDefault(
+                mode,
+                mode == GLFW_CURSOR ? GLFW_CURSOR_NORMAL : GLFW_FALSE
+        );
     }
 
     public static void glfwSetInputMode(@NativeType("GLFWwindow *") long window, int mode, int value) {
+        GLFWWindowProperties properties = internalGetWindow(window);
+
+        // UIKit does not currently expose GLFW's IME or unlimited-button modes.
+        // Keep their reported state honest instead of enabling an unsupported path.
+        if (mode == GLFW_IME || mode == GLFW_UNLIMITED_MOUSE_BUTTONS) {
+            properties.inputModes.put(mode, GLFW_FALSE);
+            return;
+        }
+
+        if (mode != GLFW_CURSOR && mode != GLFW_STICKY_KEYS &&
+                mode != GLFW_STICKY_MOUSE_BUTTONS && mode != GLFW_LOCK_KEY_MODS &&
+                mode != GLFW_RAW_MOUSE_MOTION) {
+            return;
+        }
+
         if (mode == GLFW_CURSOR) {
             switch (value) {
                 case GLFW_CURSOR_DISABLED:
@@ -1101,7 +1178,7 @@ public class GLFW
             }
         }
 
-        internalGetWindow(window).inputModes.put(mode, value);
+        properties.inputModes.put(mode, value);
     }
     public static String glfwGetKeyName(int key, int scancode) {
         // TODO keyname list from GLFW
@@ -1137,6 +1214,10 @@ public class GLFW
 
         CallbackBridge.sendGrabbing(mGLFWIsGrabbing, (int) xpos, (int) ypos);
     }*/
+
+    public static void glfwSetPreeditCursorRectangle(@NativeType("GLFWwindow *") long window, int x, int y, int width, int height) {
+        // UIKit owns the IME candidate UI and its screen placement.
+    }
 
     public static long glfwCreateCursor(@NativeType("const GLFWimage *") GLFWImage image, int xhot, int yhot) {
         return 4L;
