@@ -86,7 +86,7 @@ static WFWorkflowProgressView* currentProgressView;
 
 - (void)actionImportRuntime {
     UIDocumentPickerViewController *documentPicker = [[UIDocumentPickerViewController alloc]
-        initForOpeningContentTypes:@[[UTType typeWithMIMEType:@"application/x-xz"]]];
+        initForOpeningContentTypes:@[UTTypeData, UTTypeArchive, UTTypeItem, [UTType typeWithMIMEType:@"application/x-xz"]]];
     documentPicker.delegate = self;
     documentPicker.modalPresentationStyle = UIModalPresentationFormSheet;
     [self presentViewController:documentPicker animated:YES completion:nil];
