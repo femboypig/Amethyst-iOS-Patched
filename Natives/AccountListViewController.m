@@ -160,16 +160,6 @@
 }
 
 - (void)actionLoginLocal:(UIView *)sender {
-    if (getPrefBool(@"warnings.local_warn")) {
-        setPrefBool(@"warnings.local_warn", NO);
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:localize(@"login.warn.title.localmode", nil) message:localize(@"login.warn.message.localmode", nil) preferredStyle:UIAlertControllerStyleActionSheet];
-        alert.popoverPresentationController.sourceView = sender;
-        alert.popoverPresentationController.sourceRect = sender.bounds;
-        UIAlertAction *ok = [UIAlertAction actionWithTitle:localize(@"OK", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {[self actionLoginLocal:sender];}];
-        [alert addAction:ok];
-        [self presentViewController:alert animated:YES completion:nil];
-        return;
-    }
     UIAlertController *controller = [UIAlertController alertControllerWithTitle:localize(@"Sign in", nil) message:localize(@"login.option.local", nil) preferredStyle:UIAlertControllerStyleAlert];
     [controller addTextFieldWithConfigurationHandler:^(UITextField *textField) {
         textField.placeholder = localize(@"login.alert.field.username", nil);
