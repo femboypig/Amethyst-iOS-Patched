@@ -11,7 +11,7 @@ public class PatchJNAAgent implements ClassFileTransformer {
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
     ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
         byte[] transformeredByteCode = classfileBuffer;
-        if (className.equals("com/sun/jna/Platform")) {
+        if (className != null && className.equals("com/sun/jna/Platform")) {
             System.out.println("PatchJNAAgent: Replacing class");
             try {
                 InputStream inputStream = PatchJNAAgent.class.getClassLoader().getResourceAsStream("com/sun/jna/Platform.class.patch");
