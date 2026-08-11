@@ -1,10 +1,20 @@
 #import <UIKit/UIKit.h>
 #import <objc/runtime.h>
+#include <dlfcn.h>
 #import "LauncherPreferences.h"
 #import "UIKit+hook.h"
 #import "utils.h"
 
 __weak UIWindow *mainWindow, *externalWindow;
+
+BOOL UIKitHasLiquidGlass(void) {
+    static BOOL (*solariumEnabled)(void);
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        solariumEnabled = dlsym(RTLD_DEFAULT, "_UISolariumEnabled");
+    });
+    return solariumEnabled ? solariumEnabled() : NO;
+}
 
 void swizzle(Class class, SEL originalAction, SEL swizzledAction) {
     method_exchangeImplementations(class_getInstanceMethod(class, originalAction), class_getInstanceMethod(class, swizzledAction));
