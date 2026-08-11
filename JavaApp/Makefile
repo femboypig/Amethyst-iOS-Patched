@@ -43,8 +43,9 @@ $(OUTPUTDIR)/lwjgl.jar: $(CLASSES) check_empty_classes
 	@echo "Creating $@"
 	@mkdir -p $(OUTPUTDIR)/lwjgl_lib
 	@cd $(OUTPUTDIR)/lwjgl_lib && find ../../libs/lwjgl -name 'lwjgl*.jar' -exec $(BOOTJDK)/jar -xf {} \; && rm -rf META-INF
+	@cd $(OUTPUTDIR)/lwjgl_lib && unzip -q ../../libs/lwjgl/lwjgl.jar 'META-INF/versions/*/org/**'
 	@cp -R $(OUTPUTDIR)/lwjgl/* $(OUTPUTDIR)/lwjgl_lib/
-	@$(BOOTJDK)/jar -cf $@ -C $(OUTPUTDIR)/lwjgl_lib .
+	@$(BOOTJDK)/jar -cfm $@ $(SOURCEDIR)/lwjgl_manifest.txt -C $(OUTPUTDIR)/lwjgl_lib .
 
 $(OUTPUTDIR)/patchjna_agent.jar: $(CLASSES)
 	@set -e
