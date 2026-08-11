@@ -103,7 +103,15 @@ NSString* getSelectedJavaHome(NSString* defaultJRETag, int minVersion) {
     NSDictionary<NSString *, NSString *> *selected = pref[@"0"];
     NSString *selectedVer = selected[defaultJRETag];
     if (minVersion > selectedVer.intValue) {
-        NSArray *sortedVersions = [pref.allKeys valueForKeyPath:@"self.integerValue"];
+        NSMutableSet<NSString *> *availableVersions = [NSMutableSet setWithArray:pref.allKeys];
+        NSString *internalPath = [NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:@"java_runtimes"];
+        for (NSString *directory in [NSFileManager.defaultManager contentsOfDirectoryAtPath:internalPath error:nil]) {
+            if ([directory hasPrefix:@"java-"] && [directory hasSuffix:@"-openjdk"]) {
+                NSString *version = [directory substringWithRange:NSMakeRange(5, directory.length - 13)];
+                if (version.integerValue > 0) [availableVersions addObject:version];
+            }
+        }
+        NSArray *sortedVersions = [availableVersions.allObjects valueForKeyPath:@"self.integerValue"];
         sortedVersions = [sortedVersions sortedArrayUsingSelector:@selector(compare:)];
         for (NSNumber *version in sortedVersions) {
             if (version.intValue >= minVersion) {
@@ -118,6 +126,12 @@ NSString* getSelectedJavaHome(NSString* defaultJRETag, int minVersion) {
     }
 
     id selectedDir = pref[selectedVer];
+    if (!selectedDir) {
+        NSString *bundledRuntime = [NSString stringWithFormat:@"%@/java_runtimes/java-%@-openjdk", NSBundle.mainBundle.bundlePath, selectedVer];
+        if ([NSFileManager.defaultManager fileExistsAtPath:bundledRuntime]) {
+            selectedDir = @"internal";
+        }
+    }
     if ([selectedDir isEqualToString:@"internal"]) {
         selectedDir = [NSString stringWithFormat:@"%@/java_runtimes/java-%@-openjdk", NSBundle.mainBundle.bundlePath, selectedVer];
     } else {
