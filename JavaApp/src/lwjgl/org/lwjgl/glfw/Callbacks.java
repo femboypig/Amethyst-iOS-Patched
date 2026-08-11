@@ -35,10 +35,14 @@ public final class Callbacks {
         try {
             for (Method callback : GLFW.class.getMethods()) {
                 if (callback.getName().startsWith("glfwSet") && callback.getName().endsWith("Callback")) {
+                    Object previous;
                     if (callback.getParameterCount() == 1) {
-                        callback.invoke(null, (Object)null);
+                        previous = callback.invoke(null, (Object)null);
                     } else {
-                        callback.invoke(null, GLFW.glfwGetCurrentContext(), null);
+                        previous = callback.invoke(null, window, null);
+                    }
+                    if (previous instanceof Callback) {
+                        ((Callback)previous).free();
                     }
                 }
             }
