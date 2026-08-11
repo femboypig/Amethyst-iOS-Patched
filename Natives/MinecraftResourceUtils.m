@@ -81,8 +81,8 @@
         NSString *versionStr = [library[@"name"] componentsSeparatedByString:@":"][2];
         NSArray<NSString *> *version = [versionStr componentsSeparatedByString:@"."];
         if ([library[@"name"] hasPrefix:@"net.java.dev.jna:jna:"]) {
-            // Special handling for LabyMod 1.8.9 and Forge 1.12.2(?)
-            // we have libjnidispatch 5.13.0 in Frameworks directory
+            // Special handling for LabyMod 1.8.9 and Forge 1.12.2(?).
+            // Newer JNA jars must be kept because they contain Java/JDK compatibility fixes.
             uint32_t bundledVer = 5 << 16 | 13 << 8 | 0;
             uint32_t requiredVer = (char)version[0].intValue << 16 | (char)version[1].intValue << 8 | (char)version[2].intValue;
             if (requiredVer > bundledVer) {
