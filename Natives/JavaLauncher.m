@@ -173,6 +173,12 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
 
         // Setup POJAV_RENDERER
         NSString *renderer = [PLProfiles resolveKeyForCurrentProfile:@"renderer"];
+        if (@available(iOS 26.0, *)) {
+            if ([renderer isEqualToString:@ RENDERER_NAME_MTL_ANGLE] && minVersion >= 21) {
+                NSLog(@"[JavaLauncher] Redirecting legacy tinygl4angle to MobileGlues for modern Minecraft");
+                renderer = @ RENDERER_NAME_MOBILEGLUES;
+            }
+        }
         NSLog(@"[JavaLauncher] RENDERER is set to %@\n", renderer);
         setenv("POJAV_RENDERER", renderer.UTF8String, 1);
         // Setup gameDir
