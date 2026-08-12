@@ -364,7 +364,9 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     init_loadCustomJvmFlags(&margc, (const char **)margv);
     NSLog(@"[Init] Found JLI lib");
 
-    NSString *classpath = [NSString stringWithFormat:@"%@/*", librariesPath];
+    // Put the iOS LWJGL override ahead of the wildcard. Java's wildcard expansion
+    // order is unspecified, so relying on it can select an unintended GLFW copy.
+    NSString *classpath = [NSString stringWithFormat:@"%@/lwjgl.jar:%@/*", librariesPath, librariesPath];
     if (launchJar) {
         classpath = [classpath stringByAppendingFormat:@":%@", launchTarget];
     }
