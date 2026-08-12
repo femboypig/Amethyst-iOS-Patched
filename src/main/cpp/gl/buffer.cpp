@@ -603,9 +603,19 @@ void glTexBuffer(GLenum target, GLenum internalformat, GLuint buffer) {
           glEnumToString(internalformat), buffer)
     if (target != GL_TEXTURE_BUFFER) return;
 
-    if (!has_buffer(buffer) || buffer == 0) {
+    // There is no native texture-buffer entry point in an ES 3.0 context. A
+    // zero buffer only detaches the desktop association, so it must not bypass
+    // the 2D-texture emulation and call the ES 3.1 function.
+    if (hardware->emulate_texture_buffer && buffer == 0) {
+        return;
+    }
+    if (!hardware->emulate_texture_buffer && buffer == 0) {
         GLES.glTexBuffer(target, internalformat, buffer);
         CHECK_GL_ERROR
+        return;
+    }
+    if (!has_buffer(buffer)) {
+        LOG_E("Ignoring unknown texture buffer %u.", buffer)
         return;
     }
     GLuint real_buffer = find_real_buffer(buffer);
@@ -725,6 +735,13 @@ void glTexBufferRange(GLenum target, GLenum internalformat, GLuint buffer, GLint
     LOG()
     LOG_D("glTexBufferRange, target = %s, internalformat = %s, buffer = %d, offset = %p, size = %zi",
           glEnumToString(target), glEnumToString(internalformat), buffer, (void*)offset, size)
+    if (hardware->emulate_texture_buffer) {
+        if (offset != 0 || (size_t)size != get_buffer_data_size(buffer)) {
+            LOG_W_FORCE("Texture-buffer ranges are unavailable on ES 3.0; uploading the complete buffer %u.", buffer)
+        }
+        glTexBuffer(target, internalformat, buffer);
+        return;
+    }
     if (!has_buffer(buffer) || buffer == 0) {
         GLES.glTexBufferRange(target, internalformat, buffer, offset, size);
         CHECK_GL_ERROR
