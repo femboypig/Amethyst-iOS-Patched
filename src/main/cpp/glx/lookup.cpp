@@ -53,7 +53,35 @@ void *glXGetProcAddress(const char *name) {
   LOG()
   std::string real_func_name = handle_multidraw_func_name(std::string(name));
 #ifdef __APPLE__
-  return dlsym((void *)(~(uintptr_t)0), real_func_name.c_str());
+  // RTLD_NEXT skips this dylib and resolves the raw ANGLE symbol. That bypasses
+  // every MobileGlues wrapper, including shader conversion and texture-buffer
+  // emulation. Resolve against our own Mach-O image first instead.
+  static void *mobileglues_handle = []() -> void * {
+    Dl_info image_info{};
+    if (dladdr(reinterpret_cast<const void *>(&glXGetProcAddress), &image_info) == 0 ||
+        image_info.dli_fname == nullptr) {
+      LOG_E("Failed to locate the MobileGlues image.")
+      return nullptr;
+    }
+
+    void *handle = dlopen(image_info.dli_fname, RTLD_LAZY | RTLD_NOLOAD);
+    if (!handle) {
+      LOG_E("Failed to open the loaded MobileGlues image: %s", dlerror())
+    }
+    return handle;
+  }();
+
+  void *proc = mobileglues_handle
+                   ? dlsym(mobileglues_handle, real_func_name.c_str())
+                   : nullptr;
+  if (!proc) {
+    // Some system/EGL symbols are intentionally not wrapped by MobileGlues.
+    proc = dlsym(RTLD_DEFAULT, real_func_name.c_str());
+  }
+  if (!proc) {
+    LOG_W("Failed to get OpenGL function: %s", real_func_name.c_str())
+  }
+  return proc;
 #else
 
   void *proc = nullptr;
