@@ -339,7 +339,8 @@ bool checkIfAtomicCounterBufferEmulated(const std::string& glslCode) {
 
 std::string GLSLtoGLSLES(const char* glsl_code, GLenum glsl_type, uint essl_version, uint glsl_version, int& return_code) {
     std::string sha256_string(glsl_code);
-    sha256_string += "\n//" + std::to_string(MAJOR) + "." + std::to_string(MINOR) + "." + std::to_string(REVISION) + "|" + std::to_string(essl_version);
+    // Keep incompatible results from older converter pipelines out of the cache.
+    sha256_string += "\n//" + std::to_string(MAJOR) + "." + std::to_string(MINOR) + "." + std::to_string(REVISION) + "|" + std::to_string(essl_version) + "|opengl-spv1-v2";
     const char* cachedESSL = Cache::get_instance().get(sha256_string.c_str());
     if (cachedESSL) {
         LOG_D("GLSL Hit Cache:\n%s\n-->\n%s", glsl_code, cachedESSL)
@@ -356,7 +357,11 @@ std::string GLSLtoGLSLES(const char* glsl_code, GLenum glsl_type, uint essl_vers
         Cache::get_instance().put(sha256_string.c_str(), converted.c_str());
     }
 
-    return (return_code >= 0) ? converted : glsl_code;
+    // Desktop GLSL is not a valid fallback for an OpenGL ES context. In
+    // particular, ANGLE reads `#version 330` as a malformed ESSL directive and
+    // every subsequent layout qualifier becomes a syntax error. Let the caller
+    // reject the conversion instead of compiling an incompatible source.
+    return (return_code >= 0) ? converted : std::string();
 }
 
 std::string replace_line_starting_with(const std::string& glslCode, const std::string& starting, const std::string& substitution = "") {
@@ -378,9 +383,10 @@ std::string replace_line_starting_with(const std::string& glslCode, const std::s
             current++;
         }
 
-        // Check whether #line directive
+        // Check for the requested preprocessor directive.
         bool isLineDirective = false;
-        if (current + 5 <= length && glslCode.compare(current, 5, "#line") == 0) {
+        if (current + starting.length() <= length &&
+            glslCode.compare(current, starting.length(), starting) == 0) {
             isLineDirective = true;
         }
 
@@ -802,16 +808,21 @@ std::vector<unsigned int> glsl_to_spirv(GLenum shader_type, int glsl_version, co
     shader.setStrings(shader_src, 1);
 
     using namespace glslang;
-    shader.setEnvInput(EShSourceGlsl, shader_language, EShClientVulkan, glsl_version);
+    // Minecraft provides desktop OpenGL GLSL. Parsing it with Vulkan input
+    // semantics rejects ordinary OpenGL uniforms and used to make every shader
+    // fall through to the invalid raw-source fallback above.
+    shader.setEnvInput(EShSourceGlsl, shader_language, EShClientOpenGL, glsl_version);
     shader.setEnvClient(EShClientOpenGL, EShTargetOpenGL_450);
-    shader.setEnvTarget(EShTargetSpv, EShTargetSpv_1_6);
+    // OpenGL ingestion is defined for SPIR-V 1.0; requesting 1.6 here creates
+    // modules which are not portable through the OpenGL SPIRV-Cross path.
+    shader.setEnvTarget(EShTargetSpv, EShTargetSpv_1_0);
     shader.setAutoMapLocations(true);
     shader.setAutoMapBindings(true);
 
     TBuiltInResource TBuiltInResource_resources = InitResources();
 
     if (!shader.parse(&TBuiltInResource_resources, glsl_version, true, EShMsgDefault)) {
-        LOG_D("GLSL Compiling ERROR: \n%s",shader.getInfoLog())
+        LOG_E("GLSL conversion parse failed (version %d):\n%s", glsl_version, shader.getInfoLog())
         errc = -1;
         return {};
     }
@@ -821,7 +832,7 @@ std::vector<unsigned int> glsl_to_spirv(GLenum shader_type, int glsl_version, co
     program.addShader(&shader);
 
     if (!program.link(EShMsgDefault)) {
-        LOG_D("Shader Linking ERROR: %s", program.getInfoLog())
+        LOG_E("GLSL conversion link failed: %s", program.getInfoLog())
         errc = -1;
         return {};
     }
@@ -839,25 +850,38 @@ std::string spirv_to_essl(std::vector<unsigned int> spirv, uint essl_version, in
     spvc_parsed_ir ir = nullptr;
     spvc_compiler compiler_glsl = nullptr;
     spvc_compiler_options options = nullptr;
-    spvc_resources resources = nullptr;
-    const spvc_reflected_resource *list = nullptr;
     const char *result = nullptr;
-    size_t count;
 
     const SpvId *p_spirv = spirv.data();
     size_t word_count = spirv.size();
 
     LOG_D("spirv_code.size(): %d", spirv.size())
-    spvc_context_create(&context);
-    spvc_context_parse_spirv(context, p_spirv, word_count, &ir);
-    spvc_context_create_compiler(context, SPVC_BACKEND_GLSL, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler_glsl);
-    spvc_compiler_create_shader_resources(compiler_glsl, &resources);
-    spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, &list, &count);
-    spvc_compiler_create_compiler_options(compiler_glsl, &options);
-    spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, essl_version >= 300 ? essl_version : 300);
-    spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ES, SPVC_TRUE);
-    spvc_compiler_install_compiler_options(compiler_glsl, options);
-    spvc_compiler_compile(compiler_glsl, &result);
+    spvc_result status = spvc_context_create(&context);
+    if (status != SPVC_SUCCESS || !context) {
+        LOG_E("Failed to create SPIRV-Cross context (%d).", status)
+        errc = -1;
+        return "";
+    }
+
+#define SPVC_CHECK(call) do { \
+        status = (call); \
+        if (status != SPVC_SUCCESS) { \
+            LOG_E("SPIRV-Cross failed (%d): %s", status, spvc_context_get_last_error_string(context)) \
+            spvc_context_destroy(context); \
+            errc = -1; \
+            return ""; \
+        } \
+    } while (0)
+
+    SPVC_CHECK(spvc_context_parse_spirv(context, p_spirv, word_count, &ir));
+    SPVC_CHECK(spvc_context_create_compiler(context, SPVC_BACKEND_GLSL, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, &compiler_glsl));
+    SPVC_CHECK(spvc_compiler_create_compiler_options(compiler_glsl, &options));
+    SPVC_CHECK(spvc_compiler_options_set_uint(options, SPVC_COMPILER_OPTION_GLSL_VERSION, essl_version >= 300 ? essl_version : 300));
+    SPVC_CHECK(spvc_compiler_options_set_bool(options, SPVC_COMPILER_OPTION_GLSL_ES, SPVC_TRUE));
+    SPVC_CHECK(spvc_compiler_install_compiler_options(compiler_glsl, options));
+    SPVC_CHECK(spvc_compiler_compile(compiler_glsl, &result));
+
+#undef SPVC_CHECK
 
     if (!result) {
         LOG_E("Error: unexpected error in spirv-cross.")
