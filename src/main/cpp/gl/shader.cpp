@@ -2,7 +2,9 @@
 // Created by BZLZHH on 2025/1/26.
 //
 
+#include <algorithm>
 #include <cctype>
+#include <limits>
 #include "shader.h"
 
 #include <GL/gl.h>
@@ -20,6 +22,29 @@ struct shader_t shaderInfo;
 
 UnorderedMap<GLuint, bool> shader_map_is_sampler_buffer_emulated;
 UnorderedMap<GLuint, bool> shader_map_is_atomic_counter_emulated;
+
+static std::string canonicalize_essl_source(std::string source, unsigned int es_version) {
+    // ANGLE requires the version directive to be the first token. Remove data
+    // which can accidentally terminate or prefix a cached/generated C string.
+    source.erase(std::remove(source.begin(), source.end(), '\0'), source.end());
+    source.erase(std::remove(source.begin(), source.end(), '\r'), source.end());
+
+    const size_t version_pos = source.find("#version");
+    if (version_pos != std::string::npos) {
+        const size_t version_end = source.find('\n', version_pos);
+        source.erase(0, version_end == std::string::npos ? source.size() : version_end + 1);
+    }
+
+    while (!source.empty() && std::isspace(static_cast<unsigned char>(source.front()))) {
+        source.erase(source.begin());
+    }
+
+    unsigned int target_version = 300;
+    if (es_version >= 320) target_version = 320;
+    else if (es_version >= 310) target_version = 310;
+
+    return "#version " + std::to_string(target_version) + " es\n" + source;
+}
 
 bool can_run_essl3(unsigned int esversion, const char *glsl) {
     if (strncmp(glsl, "#version 100", 12) == 0) {
@@ -95,15 +120,23 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar *const* string, c
             LOG_E("Failed to convert shader %d.", shader)
             return;
         }
+        essl_src = canonicalize_essl_source(std::move(essl_src), hardware->es_version);
         LOG_D("\n[INFO] [Shader] Converted Shader source: \n%s", essl_src.c_str())
     }
     if (!essl_src.empty()) {
         shaderInfo.id = shader;
         shaderInfo.converted = essl_src;
         const char* s[] = { essl_src.c_str() };
+        if (essl_src.size() > static_cast<size_t>(std::numeric_limits<GLint>::max())) {
+            LOG_E("Converted shader %d is too large.", shader)
+            return;
+        }
+        const GLint source_length = static_cast<GLint>(essl_src.size());
         // The input strings were concatenated and translated into one buffer above.
         // Passing the original count makes GLES read past this one-element array.
-        GLES.glShaderSource(shader, 1, s, nullptr);
+        // Supplying the exact size also prevents an embedded/cache terminator from
+        // truncating the #version line passed to ANGLE.
+        GLES.glShaderSource(shader, 1, s, &source_length);
         if (hardware->emulate_texture_buffer)
             shader_map_is_sampler_buffer_emulated[shader] = is_sampler_buffer_emulated;
     }
