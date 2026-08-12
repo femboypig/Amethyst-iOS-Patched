@@ -92,10 +92,19 @@ void* proc_address(void* lib, const char* name) {
 void set_hardware() {
     hardware = new hardware_s;
     set_es_version();
+#ifdef __APPLE__
+    // ANGLE's desktop-GL facade advertises GL 3.3 on Metal, but texture buffer
+    // shaders currently reach its Metal translator as an unsupported
+    // texture_buffer and produce calls to an undefined ANGLE_texelFetch helper.
+    // MobileGlues already has a 2D-texture implementation for this path, so use
+    // it on Apple regardless of the facade version.
+    hardware->emulate_texture_buffer = true;
+#else
     if (hardware->es_version <= 310)
         hardware->emulate_texture_buffer = true;
     else
         hardware->emulate_texture_buffer = false;
+#endif
 }
 
 void init_gl_state() {
