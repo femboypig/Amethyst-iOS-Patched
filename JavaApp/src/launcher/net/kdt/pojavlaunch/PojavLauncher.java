@@ -17,6 +17,10 @@ public class PojavLauncher {
     private static float currProgress, maxProgress;
 
     public static void main(String[] args) throws Throwable {
+        System.out.println("[Amethyst] GLFW revision: " + GLFW.AMETHYST_GLFW_REVISION);
+        System.out.println("[Amethyst] GLFW loaded from: " +
+                GLFW.class.getProtectionDomain().getCodeSource().getLocation());
+
         // Skip calling to com.apple.eawt.Application.nativeInitializeApplicationDelegate()
         Beans.setDesignTime(true);
         try {
