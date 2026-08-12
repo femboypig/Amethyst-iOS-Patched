@@ -575,15 +575,15 @@ bool process_non_opaque_atomic_to_ssbo(std::string& source) {
 }
 
 void process_sampler_buffer(std::string& source) { // a simplized version, should be rewritten in the future
-    if (source.find("isamplerBuffer") == std::string::npos) {
+    if (source.find("samplerBuffer") == std::string::npos) {
         return;
     }
 
-    size_t pos = 0;
-    while ((pos = source.find("isamplerBuffer", pos)) != std::string::npos) {
-        source.replace(pos, 14, "isampler2D");
-        pos += 11;
-    }
+    // Handle every desktop texture-buffer sampler type. Replace the signed and
+    // unsigned forms first because both contain the plain samplerBuffer token.
+    replace_all(source, "isamplerBuffer", "isampler2D");
+    replace_all(source, "usamplerBuffer", "usampler2D");
+    replace_all(source, "samplerBuffer", "sampler2D");
 
     std::regex pattern(R"(texelFetch\s*\(\s*(\w+)\s*,\s*([^)]+?)\s*\))");
     source = std::regex_replace(
