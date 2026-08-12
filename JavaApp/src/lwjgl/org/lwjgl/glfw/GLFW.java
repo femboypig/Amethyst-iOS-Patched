@@ -30,6 +30,8 @@ import sun.misc.Unsafe;
 
 public class GLFW
 {
+    public static final String AMETHYST_GLFW_REVISION = "glfw-ime-safe-2";
+
     static FloatBuffer joystickData = (FloatBuffer)FloatBuffer.allocate(8).flip();
     static ByteBuffer buttonData = (ByteBuffer)ByteBuffer.allocate(8).flip();
     /** The major version number of the GLFW library. This is incremented when the API is changed in non-compatible ways. */
@@ -1146,11 +1148,14 @@ public class GLFW
     public static void glfwPostEmptyEvent() {}
 
     public static int glfwGetInputMode(@NativeType("GLFWwindow *") long window, int mode) {
+        if (mode == GLFW_IME || mode == GLFW_UNLIMITED_MOUSE_BUTTONS) {
+            return GLFW_FALSE;
+        }
+
         GLFWWindowProperties properties = internalGetWindow(window);
-        return properties.inputModes.getOrDefault(
-                mode,
-                mode == GLFW_CURSOR ? GLFW_CURSOR_NORMAL : GLFW_FALSE
-        );
+        Integer value = properties.inputModes.get(mode);
+        if (value != null) return value;
+        return mode == GLFW_CURSOR ? GLFW_CURSOR_NORMAL : GLFW_FALSE;
     }
 
     public static void glfwSetInputMode(@NativeType("GLFWwindow *") long window, int mode, int value) {
