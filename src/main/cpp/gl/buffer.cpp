@@ -547,6 +547,54 @@ size_t get_internal_format_size(GLenum internalformat) {
     }
 }
 
+static GLenum get_texture_buffer_upload_type(GLenum internalformat) {
+    switch (internalformat) {
+    case GL_R8I: case GL_RG8I: case GL_RGB8I: case GL_RGBA8I:
+        return GL_BYTE;
+    case GL_R8UI: case GL_RG8UI: case GL_RGB8UI: case GL_RGBA8UI:
+        return GL_UNSIGNED_BYTE;
+    case GL_R16I: case GL_RG16I: case GL_RGB16I: case GL_RGBA16I:
+        return GL_SHORT;
+    case GL_R16UI: case GL_RG16UI: case GL_RGB16UI: case GL_RGBA16UI:
+        return GL_UNSIGNED_SHORT;
+    case GL_R16F: case GL_RG16F: case GL_RGB16F: case GL_RGBA16F:
+        return GL_HALF_FLOAT;
+    case GL_R32I: case GL_RG32I: case GL_RGB32I: case GL_RGBA32I:
+        return GL_INT;
+    case GL_R32UI: case GL_RG32UI: case GL_RGB32UI: case GL_RGBA32UI:
+        return GL_UNSIGNED_INT;
+    case GL_R32F: case GL_RG32F: case GL_RGB32F: case GL_RGBA32F:
+        return GL_FLOAT;
+    default:
+        return GL_UNSIGNED_BYTE;
+    }
+}
+
+static GLenum get_texture_buffer_upload_format(GLenum internalformat) {
+    switch (internalformat) {
+    case GL_RG8I: case GL_RG8UI: case GL_RG16I: case GL_RG16UI:
+    case GL_RG32I: case GL_RG32UI:
+        return GL_RG_INTEGER;
+    case GL_RGB8I: case GL_RGB8UI: case GL_RGB16I: case GL_RGB16UI:
+    case GL_RGB32I: case GL_RGB32UI:
+        return GL_RGB_INTEGER;
+    case GL_RGBA8I: case GL_RGBA8UI: case GL_RGBA16I: case GL_RGBA16UI:
+    case GL_RGBA32I: case GL_RGBA32UI:
+        return GL_RGBA_INTEGER;
+    case GL_R8I: case GL_R8UI: case GL_R16I: case GL_R16UI:
+    case GL_R32I: case GL_R32UI:
+        return GL_RED_INTEGER;
+    case GL_RG8: case GL_RG16: case GL_RG16F: case GL_RG32F:
+        return GL_RG;
+    case GL_RGB8: case GL_RGB16: case GL_RGB16F: case GL_RGB32F:
+        return GL_RGB;
+    case GL_RGBA8: case GL_RGBA16: case GL_RGBA16F: case GL_RGBA32F:
+        return GL_RGBA;
+    default:
+        return GL_RED;
+    }
+}
+
 extern std::string bufSampelerName;
 // Todo: any glGet* related to this function?
 void glTexBuffer(GLenum target, GLenum internalformat, GLuint buffer) {
@@ -622,13 +670,15 @@ void glTexBuffer(GLenum target, GLenum internalformat, GLuint buffer) {
         GLES.glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
 
         // TODO: Optimize the glTexImage2D call
-        GLES.glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, GL_RED_INTEGER, GL_BYTE, nullptr);
+        const GLenum uploadFormat = get_texture_buffer_upload_format(internalformat);
+        const GLenum uploadType = get_texture_buffer_upload_type(internalformat);
+        GLES.glTexImage2D(GL_TEXTURE_2D, 0, internalformat, width, height, 0, uploadFormat, uploadType, nullptr);
 
         GLES.glBindBuffer(GL_PIXEL_UNPACK_BUFFER, real_buffer);
 
         for (GLuint row = 0; row < height; ++row) {
             void* offset = (void*)(row * width * pixelSize);
-            GLES.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, row, width, 1, GL_RED_INTEGER, GL_BYTE, offset);
+            GLES.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, row, width, 1, uploadFormat, uploadType, offset);
         }
 
         GLES.glPixelStorei(GL_UNPACK_ALIGNMENT, prev_alignment);
