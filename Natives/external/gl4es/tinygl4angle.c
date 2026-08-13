@@ -54,6 +54,11 @@ void(*gles_glTexImage2D)(GLenum target, GLint level, GLint internalformat, GLsiz
 void(*gles_glTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data);
 void(*gles_glTexParameterfv)(GLenum target, GLenum pname, const GLfloat *params);
 void(*gles_glTexParameteri)(GLenum target, GLenum pname, GLint param);
+void(*gles_glTexParameteriv)(GLenum target, GLenum pname, const GLint *params);
+void(*gles_glSamplerParameterf)(GLuint sampler, GLenum pname, GLfloat param);
+void(*gles_glSamplerParameterfv)(GLuint sampler, GLenum pname, const GLfloat *params);
+void(*gles_glSamplerParameteri)(GLuint sampler, GLenum pname, GLint param);
+void(*gles_glSamplerParameteriv)(GLuint sampler, GLenum pname, const GLint *params);
 
 void glClearDepth(GLdouble depth) {
     glClearDepthf(depth);
@@ -83,14 +88,12 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar * const *string, 
             strcat(source, string[i]);
     }
     
-    int sourceVersion = 0;
     char *source2 = strstr(source, "#version ");
     if (!source2) {
         source2 = source;
     }
     // are there #version?
     if (!strncmp(source2, "#version ", 9)) {
-        sourceVersion = atoi(&source2[9]);
         if (!strncmp(&source2[13], "es", 2)) {
             // This source already targets ANGLE directly.
             gles_glShaderSource(shader, 1, (const GLchar * const*)&source, NULL);
@@ -119,11 +122,11 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar * const *string, 
 
     int convertedLen = strlen(converted);
 
-    // ANGLE's desktop frontend on recent iOS builds can tokenize GLSL 1.50 `flat` as
+    // ANGLE's desktop frontend on recent iOS builds can tokenize desktop GLSL `flat` as
     // an ES 2 reserved word.  Dropping the interpolation qualifier keeps the
     // vertex/fragment interface compatible and lets vanilla 1.20.x shaders
     // (notably rendertype_leash) compile.
-    if (sourceVersion >= 130 && sourceVersion <= 150 && FindString(converted, "flat")) {
+    if (FindString(converted, "flat")) {
         converted = InplaceReplace(converted, &convertedLen, "flat", "");
     }
 
@@ -249,6 +252,41 @@ void glTexParameteri(GLenum target, GLenum pname, GLint param) {
     LOOKUP_FUNC(glTexParameteri)
     if (pname != GL_TEXTURE_LOD_BIAS) {
         gles_glTexParameteri(target, pname, param);
+    }
+}
+
+void glTexParameteriv(GLenum target, GLenum pname, const GLint *params) {
+    LOOKUP_FUNC(glTexParameteriv)
+    if (pname != GL_TEXTURE_LOD_BIAS) {
+        gles_glTexParameteriv(target, pname, params);
+    }
+}
+
+void glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param) {
+    LOOKUP_FUNC(glSamplerParameterf)
+    if (pname != GL_TEXTURE_LOD_BIAS) {
+        gles_glSamplerParameterf(sampler, pname, param);
+    }
+}
+
+void glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params) {
+    LOOKUP_FUNC(glSamplerParameterfv)
+    if (pname != GL_TEXTURE_LOD_BIAS) {
+        gles_glSamplerParameterfv(sampler, pname, params);
+    }
+}
+
+void glSamplerParameteri(GLuint sampler, GLenum pname, GLint param) {
+    LOOKUP_FUNC(glSamplerParameteri)
+    if (pname != GL_TEXTURE_LOD_BIAS) {
+        gles_glSamplerParameteri(sampler, pname, param);
+    }
+}
+
+void glSamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params) {
+    LOOKUP_FUNC(glSamplerParameteriv)
+    if (pname != GL_TEXTURE_LOD_BIAS) {
+        gles_glSamplerParameteriv(sampler, pname, params);
     }
 }
 
