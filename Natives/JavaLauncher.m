@@ -153,6 +153,7 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     BOOL launchJar = NO;
     NSString *gameDir;
     NSString *defaultJRETag;
+    const int requiredJavaVersion = minVersion;
     NSCAssert(launchTarget, @"Unexpected nil launchTarget");
     if ([launchTarget isKindOfClass:NSDictionary.class]) {
         // Get preferred Java version from current profile
@@ -174,9 +175,17 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         // Setup POJAV_RENDERER
         NSString *renderer = [PLProfiles resolveKeyForCurrentProfile:@"renderer"];
         if (@available(iOS 26.0, *)) {
-            if ([renderer isEqualToString:@ RENDERER_NAME_MTL_ANGLE] && minVersion >= 21) {
-                NSLog(@"[JavaLauncher] Redirecting legacy tinygl4angle to MobileGlues for modern Minecraft");
-                renderer = @ RENDERER_NAME_MOBILEGLUES;
+            // tinygl4angle's desktop facade is unstable on iOS 26. Route every
+            // Minecraft generation to the renderer which implements the GL
+            // level it expects instead of limiting the workaround to Java 21+.
+            if ([renderer isEqualToString:@ RENDERER_NAME_MTL_ANGLE] || [renderer isEqualToString:@"auto"]) {
+                if (requiredJavaVersion <= 8) {
+                    NSLog(@"[JavaLauncher] Redirecting legacy Minecraft to GL4ES on iOS 26+");
+                    renderer = @ RENDERER_NAME_GL4ES;
+                } else {
+                    NSLog(@"[JavaLauncher] Redirecting Minecraft 1.17+ to MobileGlues on iOS 26+");
+                    renderer = @ RENDERER_NAME_MOBILEGLUES;
+                }
             }
         }
         NSLog(@"[JavaLauncher] RENDERER is set to %@\n", renderer);
