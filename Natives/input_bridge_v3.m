@@ -437,7 +437,9 @@ void CallbackBridge_nativeSetInputReady(BOOL inputReady) {
 }
 
 BOOL CallbackBridge_nativeSendChar(jchar codepoint /* jint codepoint */) {
-    if (GLFW_invoke_Char && isInputReady) {
+    if (!isInputReady) return NO;
+
+    if (GLFW_invoke_Char) {
         if (isUseStackQueueCall) {
             sendData(EVENT_TYPE_CHAR, codepoint, 0, 0, 0);
         } else {
@@ -446,6 +448,20 @@ BOOL CallbackBridge_nativeSendChar(jchar codepoint /* jint codepoint */) {
         }
         return YES;
     }
+
+    // Minecraft 1.20.x and older may install only GLFW's deprecated
+    // char-mods callback, while current releases install only char. Route a
+    // character to exactly one callback so both generations receive text
+    // without duplicating it when both callbacks happen to be registered.
+    if (GLFW_invoke_CharMods) {
+        if (isUseStackQueueCall) {
+            sendData(EVENT_TYPE_CHAR_MODS, (unsigned int) codepoint, 0, 0, 0);
+        } else {
+            GLFW_invoke_CharMods((void*) showingWindow, codepoint, 0);
+        }
+        return YES;
+    }
+
     return NO;
 }
 
