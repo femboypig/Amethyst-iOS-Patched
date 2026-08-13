@@ -276,7 +276,16 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
             // workaround only applies to 1.20.2+
             glLibName = RENDERER_NAME_MTL_ANGLE;
         }
-        margv[++margc] = [NSString stringWithFormat:@"-Dorg.lwjgl.opengl.libname=%s", glLibName].UTF8String;
+        NSString *glLibraryName = @(glLibName);
+        if (!strcmp(glLibName, RENDERER_NAME_MTL_ANGLE)) {
+            glLibraryName = [NSBundle.mainBundle.bundlePath stringByAppendingPathComponent:
+                [@"Frameworks" stringByAppendingPathComponent:glLibraryName]];
+            void *tinyglHandle = dlopen(glLibraryName.fileSystemRepresentation, RTLD_NOW | RTLD_GLOBAL);
+            if (!tinyglHandle) {
+                NSLog(@"[JavaLauncher] Failed to preload tinygl4angle: %s", dlerror());
+            }
+        }
+        margv[++margc] = [NSString stringWithFormat:@"-Dorg.lwjgl.opengl.libname=%@", glLibraryName].UTF8String;
     }
 
     NSString *librariesPath = [NSString stringWithFormat:@"%@/libs", NSBundle.mainBundle.bundlePath];
