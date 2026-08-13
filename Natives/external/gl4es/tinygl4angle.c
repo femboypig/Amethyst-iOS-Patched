@@ -53,6 +53,7 @@ void(*gles_glShaderSource)(GLuint shader, GLsizei count, const GLchar * const *s
 void(*gles_glTexImage2D)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *data);
 void(*gles_glTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *data);
 void(*gles_glTexParameterfv)(GLenum target, GLenum pname, const GLfloat *params);
+void(*gles_glTexParameteri)(GLenum target, GLenum pname, GLint param);
 
 void glClearDepth(GLdouble depth) {
     glClearDepthf(depth);
@@ -82,14 +83,18 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar * const *string, 
             strcat(source, string[i]);
     }
     
-    char *source2 = strchr(source, '#');
+    int sourceVersion = 0;
+    char *source2 = strstr(source, "#version ");
     if (!source2) {
         source2 = source;
     }
     // are there #version?
     if (!strncmp(source2, "#version ", 9)) {
+        sourceVersion = atoi(&source2[9]);
         if (!strncmp(&source2[13], "es", 2)) {
-            // This is for gl4es. TODO: maybe remove 'es' aswell?
+            // This source already targets ANGLE directly.
+            gles_glShaderSource(shader, 1, (const GLchar * const*)&source, NULL);
+            free(source);
             return;
         }
         converted = strdup(source2);
@@ -113,6 +118,14 @@ void glShaderSource(GLuint shader, GLsizei count, const GLchar * const *string, 
     }
 
     int convertedLen = strlen(converted);
+
+    // ANGLE's desktop frontend on recent iOS builds can tokenize GLSL 1.50 `flat` as
+    // an ES 2 reserved word.  Dropping the interpolation qualifier keeps the
+    // vertex/fragment interface compatible and lets vanilla 1.20.x shaders
+    // (notably rendertype_leash) compile.
+    if (sourceVersion >= 130 && sourceVersion <= 150 && FindString(converted, "flat")) {
+        converted = InplaceReplace(converted, &convertedLen, "flat", "");
+    }
 
 #ifdef __APPLE__
     // patch OptiFine 1.17.x
@@ -230,6 +243,13 @@ void glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params) {
 }
 void glTexParameterf(GLenum target, GLenum pname, GLfloat param) {
     glTexParameterfv(target, pname, &param);
+}
+
+void glTexParameteri(GLenum target, GLenum pname, GLint param) {
+    LOOKUP_FUNC(glTexParameteri)
+    if (pname != GL_TEXTURE_LOD_BIAS) {
+        gles_glTexParameteri(target, pname, param);
+    }
 }
 
 // Handle reading depth buffer
