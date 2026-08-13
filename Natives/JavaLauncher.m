@@ -175,15 +175,16 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         // Setup POJAV_RENDERER
         NSString *renderer = [PLProfiles resolveKeyForCurrentProfile:@"renderer"];
         if (@available(iOS 26.0, *)) {
-            // tinygl4angle's desktop facade is unstable on iOS 26. Route every
-            // Minecraft generation to the renderer which implements the GL
-            // level it expects instead of limiting the workaround to Java 21+.
+            // Keep the proven renderer split by Minecraft generation. Java 17
+            // releases (through 1.20.4) rely on tinygl4angle's desktop shader
+            // path; forcing those through MobileGlues links programs without
+            // their uniforms and leaves 1.20.2 on the red loading surface.
             if ([renderer isEqualToString:@ RENDERER_NAME_MTL_ANGLE] || [renderer isEqualToString:@"auto"]) {
-                if (requiredJavaVersion <= 8) {
+                if (requiredJavaVersion <= 8 && [renderer isEqualToString:@"auto"]) {
                     NSLog(@"[JavaLauncher] Redirecting legacy Minecraft to GL4ES on iOS 26+");
                     renderer = @ RENDERER_NAME_GL4ES;
-                } else {
-                    NSLog(@"[JavaLauncher] Redirecting Minecraft 1.17+ to MobileGlues on iOS 26+");
+                } else if (requiredJavaVersion >= 21) {
+                    NSLog(@"[JavaLauncher] Redirecting Minecraft 1.20.5+ to MobileGlues on iOS 26+");
                     renderer = @ RENDERER_NAME_MOBILEGLUES;
                 }
             }
