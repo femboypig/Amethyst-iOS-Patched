@@ -679,7 +679,11 @@ static GameSurfaceView* pojavWindow;
 
 - (void)registerKeyboardCallbacks:(GCKeyboard *)keyboard API_AVAILABLE(ios(14.0)) {
     keyboard.keyboardInput.keyChangedHandler = ^(GCKeyboardInput *input, GCDeviceButtonInput *key, GCKeyCode keyCode, BOOL pressed) {
-        [KeyboardInput sendGCKeyCode:(NSInteger)keyCode down:pressed];
+        // GameController does not guarantee the main queue. Keep keyboard state
+        // and the native GLFW event producer serialized with UIKit input.
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [KeyboardInput sendGCKeyCode:(NSInteger)keyCode down:pressed];
+        });
     };
 }
 
