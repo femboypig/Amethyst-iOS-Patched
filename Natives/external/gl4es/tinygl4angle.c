@@ -6,6 +6,7 @@
 
 #include "GL/gl.h"
 #include "GL/glext.h"
+#include "EGL/egl.h"
 //#include "GLES3/gl32.h"
 #include "string_utils.h"
 
@@ -46,6 +47,8 @@ AliasDeclPriv(PolygonMode)
 
 int proxy_width, proxy_height, proxy_intformat, maxTextureSize;
 
+static __eglMustCastToProperFunctionPointerType (*gles_eglGetProcAddress)(const char *procname);
+
 void(*gles_glCopyTexSubImage2D)(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
 //void glGetBufferParameteriv(GLenum target, GLenum value, GLint * data);
 void(*gles_glGetTexLevelParameteriv)(GLenum target, GLint level, GLenum pname, GLint *params);
@@ -62,6 +65,43 @@ void(*gles_glSamplerParameteriv)(GLuint sampler, GLenum pname, const GLint *para
 
 void glClearDepth(GLdouble depth) {
     glClearDepthf(depth);
+}
+
+static void *tinyglWrappedProcAddress(const char *procname) {
+#define WRAPPED_PROC(name) if (!strcmp(procname, #name)) return (void *)&name
+    WRAPPED_PROC(glShaderSource);
+    WRAPPED_PROC(glTexImage2D);
+    WRAPPED_PROC(glTexSubImage2D);
+    WRAPPED_PROC(glTexParameterf);
+    WRAPPED_PROC(glTexParameterfv);
+    WRAPPED_PROC(glTexParameteri);
+    WRAPPED_PROC(glTexParameteriv);
+    WRAPPED_PROC(glSamplerParameterf);
+    WRAPPED_PROC(glSamplerParameterfv);
+    WRAPPED_PROC(glSamplerParameteri);
+    WRAPPED_PROC(glSamplerParameteriv);
+#undef WRAPPED_PROC
+    return NULL;
+}
+
+__eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *procname) {
+    void *wrapped = tinyglWrappedProcAddress(procname);
+    if (wrapped) return (__eglMustCastToProperFunctionPointerType)wrapped;
+
+    if (!gles_eglGetProcAddress) {
+        gles_eglGetProcAddress = dlsym(RTLD_NEXT, "eglGetProcAddress");
+    }
+    return gles_eglGetProcAddress ? gles_eglGetProcAddress(procname) : NULL;
+}
+
+void (*glXGetProcAddress(const GLubyte *procname))(void) {
+    void *wrapped = tinyglWrappedProcAddress((const char *)procname);
+    if (wrapped) return (void (*)(void))wrapped;
+    return (void (*)(void))eglGetProcAddress((const char *)procname);
+}
+
+void (*glXGetProcAddressARB(const GLubyte *procname))(void) {
+    return glXGetProcAddress(procname);
 }
 
 void glShaderSource(GLuint shader, GLsizei count, const GLchar * const *string, const GLint *length) {
