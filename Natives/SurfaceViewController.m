@@ -47,6 +47,7 @@ static GameSurfaceView* pojavWindow;
 
 @property(nonatomic) id mouseConnectCallback, mouseDisconnectCallback;
 @property(nonatomic) id controllerConnectCallback, controllerDisconnectCallback;
+@property(nonatomic) id keyboardConnectCallback, keyboardDisconnectCallback;
 
 @property(nonatomic) CGFloat screenScale;
 @property(nonatomic) CGFloat mouseSpeed;
@@ -204,6 +205,21 @@ static GameSurfaceView* pojavWindow;
     self.swipeableButtons = [[NSMutableArray alloc] init];
 
     [KeyboardInput initKeycodeTable];
+    if (@available(iOS 26.0, *)) {
+        self.keyboardConnectCallback = [[NSNotificationCenter defaultCenter] addObserverForName:GCKeyboardDidConnectNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
+            NSLog(@"Input: Keyboard connected through GameController");
+            [self registerKeyboardCallbacks:note.object];
+        }];
+        self.keyboardDisconnectCallback = [[NSNotificationCenter defaultCenter] addObserverForName:GCKeyboardDidDisconnectNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
+            NSLog(@"Input: Keyboard disconnected from GameController");
+            GCKeyboard *keyboard = note.object;
+            keyboard.keyboardInput.keyChangedHandler = nil;
+            [KeyboardInput resetPressedKeys];
+        }];
+        if (GCKeyboard.coalescedKeyboard != nil) {
+            [self registerKeyboardCallbacks:GCKeyboard.coalescedKeyboard];
+        }
+    }
     self.mouseConnectCallback = [[NSNotificationCenter defaultCenter] addObserverForName:GCMouseDidConnectNotification object:nil queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification *note) {
         NSLog(@"Input: Mouse connected!");
         GCMouse* mouse = note.object;
@@ -648,8 +664,23 @@ static GameSurfaceView* pojavWindow;
     }
 }
 
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    for (UIPress *press in presses) {
+        if (press.key != nil) {
+            [KeyboardInput sendKeyEvent:press.key down:NO];
+        }
+    }
+    [super pressesCancelled:presses withEvent:event];
+}
+
 - (BOOL)prefersPointerLocked {
     return GCMouse.mice.count > 0 && (isGrabbing || virtualMouseEnabled);
+}
+
+- (void)registerKeyboardCallbacks:(GCKeyboard *)keyboard API_AVAILABLE(ios(14.0)) {
+    keyboard.keyboardInput.keyChangedHandler = ^(GCKeyboardInput *input, GCDeviceButtonInput *key, GCKeyCode keyCode, BOOL pressed) {
+        [KeyboardInput sendGCKeyCode:(NSInteger)keyCode down:pressed];
+    };
 }
 
 - (void)registerMouseCallbacks:(GCMouse *)mouse {
