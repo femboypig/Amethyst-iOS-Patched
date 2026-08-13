@@ -3,8 +3,6 @@
 #import "utils.h"
 #include "glfw_keycodes.h"
 
-extern bool isUseStackQueueCall;
-
 // There are private functions that we are unable to find public replacements
 // (Both are found by placing breakpoints)
 @interface UITextField(private)
@@ -36,11 +34,11 @@ extern bool isUseStackQueueCall;
     for (int i = 0; i < text.length; i++) {
         // Directly convert unichar to jchar since both are in UTF-16 encoding.
         unichar theChar = [text characterAtIndex:i];
-        if (isUseStackQueueCall && self.sendCharMods != nil) {
-            self.sendCharMods(theChar, 0);
-        } else {
-            self.sendChar(theChar);
-        }
+        // GLFW 3.4 removed the deprecated char-mods callback. Minecraft 26.x
+        // consequently installs only the regular character callback, so using
+        // char-mods for the stack queue silently dropped all software-keyboard
+        // text. Modifiers are already represented in the produced Unicode text.
+        self.sendChar(theChar);
     }
 }
 
