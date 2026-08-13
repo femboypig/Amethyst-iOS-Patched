@@ -148,7 +148,8 @@ static char currentKeyboardModifiers(void) {
     if (isDown && key.characters.length < 11) {
         for (int i = 0; i < key.characters.length; i++) {
             int keychar = [key.characters characterAtIndex:i];
-            CallbackBridge_nativeSendCharMods(keychar, modifiers);
+            // The native bridge selects char for current GLFW and falls back
+            // to char-mods for legacy Minecraft without sending duplicates.
             CallbackBridge_nativeSendChar(keychar);
         }
     }
